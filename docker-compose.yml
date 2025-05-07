@@ -62,12 +62,12 @@ services :
     image: grafana/loki
     container_name: mmb-loki
     restart: no
+    user: "0:0"
     ports:
       - "${LOKI_PORT}:3100"
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
       - loki_data:/loki
-      - loki_wal:/wal
     command: -config.file=/etc/loki/config.yaml
     networks:
       - mgt-net
@@ -88,7 +88,6 @@ volumes:
     external: true
   prometheus_data:
   loki_data:
-  loki_wal:
 
 networks:
   be-net:
