@@ -1,0 +1,36 @@
+name: Monitoring CD - Manual Deploy to EC2
+
+on:
+  workflow_dispatch:  # 수동 실행 트리거
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: SSH key 설정
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_EC2_KEY }}" > ~/.ssh/ec2.pem
+          chmod 600 ~/.ssh/ec2.pem
+
+      - name: EC2 서버에 배포 디렉토리 생성
+        run: |
+          ssh -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no ${{ secrets.DEV_EC2_HOST }} \
+          "mkdir -p ${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring"
+
+      - name: docker-compose.yml 및 설정 파일 전송
+        run: |
+          scp -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no -r docker-compose.yml grafana prometheus loki promtail exporters \
+          ${{ secrets.DEV_EC2_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring/
+
+      - name: EC2 서버에서 docker-compose 실행
+        run: |
+          ssh -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no ${{ secrets.DEV_EC2_HOST }} << EOF
+            cd ${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring
+            docker compose up -d --remove-orphans
+          EOF
