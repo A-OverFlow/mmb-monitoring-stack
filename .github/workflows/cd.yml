@@ -18,19 +18,39 @@ jobs:
           echo "${{ secrets.DEV_EC2_KEY }}" > ~/.ssh/ec2.pem
           chmod 600 ~/.ssh/ec2.pem
 
+      - name: 저장소 이름 및 배포 디렉토리 변수 설정
+        id: vars
+        run: |
+          echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_OUTPUT  # 저장소 이름 추출
+          echo "DEPLOY_DIR=${{ secrets.DEV_DEPLOY_PATH }}/${GITHUB_REPOSITORY##*/}" >> $GITHUB_OUTPUT  # 배포 경로 설정
+
       - name: EC2 서버에 배포 디렉토리 생성
         run: |
           ssh -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no ${{ secrets.DEV_EC2_HOST }} \
-          "mkdir -p ${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring"
+          "mkdir -p ${{ steps.vars.outputs.DEPLOY_DIR }}"
 
       - name: docker-compose.yml 및 설정 파일 전송
         run: |
           scp -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no -r docker-compose.yml grafana prometheus loki promtail exporters \
-          ${{ secrets.DEV_EC2_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring/
+          ${{ secrets.DEV_EC2_HOST }}:${{ steps.vars.outputs.DEPLOY_DIR }}/
+
+      - name: 배포에 필요한 .env 파일 생성
+        run: |
+          echo "NODE_EXPORTER_PORT=${{ vars.NODE_EXPORTER_PORT }}" > .env
+          echo "PROCESS_EXPORTER_PORT=${{ vars.PROCESS_EXPORTER_PORT }}" >> .env
+          echo "PROMETHEUS_PORT=${{ vars.PROMETHEUS_PORT }}" >> .env
+          echo "GRAFANA_PORT=${{ vars.GRAFANA_PORT }}" >> .env
+
+      - name: 생성한 .env 파일 EC2 서버로 복사
+        run: |
+          scp -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no .env \
+          ${{ secrets.DEV_EC2_HOST }}:${{ steps.vars.outputs.DEPLOY_DIR }}/.env
 
       - name: EC2 서버에서 docker-compose 실행
         run: |
           ssh -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=no ${{ secrets.DEV_EC2_HOST }} << EOF
             cd ${{ secrets.DEV_DEPLOY_PATH }}/infra-monitoring
-            docker compose up -d --remove-orphans
+            cd ${{ steps.vars.outputs.DEPLOY_DIR }}
+            docker compose pull    # 최신 이미지를 가져옴
+            docker compose up -d   # 컨테이너를 백그라운드로 실행
           EOF
