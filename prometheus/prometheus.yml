@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 60s   # 모든 타겟에 대해 1분마다 메트릭 수집
+
+scrape_configs:
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['52.78.231.247:9100']
+  - job_name: 'process-exporter'
+    static_configs:
+      - targets: ['52.78.231.247:9256']

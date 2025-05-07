@@ -1,0 +1,70 @@
+services :
+  mmb-node-exporter:
+    image: prom/node-exporter
+    container_name: mmb-node-exporter
+    restart: no
+    ports:
+      - "9100:9100"
+    networks:
+      - mgt-net
+      - be-net
+
+  mmb-process-exporter:
+    image: ncabatoff/process-exporter:latest
+    container_name: mmb-process-exporter
+    restart: no
+    volumes:
+      - /proc:/host/proc:ro
+      - ./exporters/process-exporter.yml:/etc/process-exporter/config.yml:ro
+      - /etc:/host/etc:ro
+    command:
+      - "--procfs=/host/proc"
+      - "--config.path=/etc/process-exporter/config.yml"
+    ports:
+      - "9256:9256"
+    networks:
+      - mgt-net
+      - be-net
+
+  mmb-prometheus:
+    image: prom/prometheus
+    container_name: mmb-prometheus
+    restart: no
+    depends_on:
+      - mmb-node-exporter
+      - mmb-process-exporter
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - mgt-net
+
+  mmb-grafana:
+    image: grafana/grafana
+    container_name: mmb-grafana
+    restart: no
+    depends_on:
+      - mmb-prometheus
+    environment:
+      - GF_SERVER_ROOT_URL=https://localhost:3000/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - mgt-net
+
+volumes:
+  grafana_data:
+    external: true
+  prometheus_data:
+
+networks:
+  be-net:
+    driver: bridge
+  mgt-net:
+    driver: bridge

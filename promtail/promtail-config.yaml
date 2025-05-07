@@ -1,0 +1,33 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: apigateway-logs
+    # read_from 옵션 제거 (지원되지 않음)
+    static_configs:
+      - targets: [ "localhost" ]
+        labels:
+          job: apigateway
+          env: dev
+          __path__: /var/log/apigateway/dev.log
+      - targets: [ "localhost" ]
+        labels:
+          job: apigateway
+          env: prod
+          __path__: /var/log/apigateway/prod.log
+
+    pipeline_stages:
+      - regex:
+          # 정규표현식: 대시보드 로그에서 Method와 URI를 추출합니다.
+          # (필요에 따라 정규표현식을 조정하세요)
+          expression: 'Method\s+:\s+(?P<method>[A-Z]+).*URI\s+:\s+(?P<uri>\S+)'
+      - labels:
+          method: ""
+          uri: ""
