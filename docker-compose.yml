@@ -58,10 +58,35 @@ services :
     networks:
       - mgt-net
 
+  mmb-loki:
+    image: grafana/loki
+    container_name: mmb-loki
+    restart: no
+    ports:
+      - "${LOKI_PORT}:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/config.yaml
+    networks:
+      - mgt-net
+
+  mmb-promtail:
+    image: grafana/promtail
+    container_name: mmb-promtail
+    restart: no
+    volumes:
+      - /var/log:/var/log:ro  # 호스트의 로그 읽기
+      - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - mgt-net
+
 volumes:
   grafana_data:
     external: true
   prometheus_data:
+  loki_data:
 
 networks:
   be-net:
