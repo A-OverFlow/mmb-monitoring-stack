@@ -4,7 +4,7 @@ services :
     container_name: mmb-node-exporter
     restart: no
     ports:
-      - "9100:9100"
+      - "${NODE_EXPORTER_PORT}:9100"
     networks:
       - mgt-net
       - be-net
@@ -21,7 +21,7 @@ services :
       - "--procfs=/host/proc"
       - "--config.path=/etc/process-exporter/config.yml"
     ports:
-      - "9256:9256"
+      - "${PROCESS_EXPORTER_PORT}:9256"
     networks:
       - mgt-net
       - be-net
@@ -37,7 +37,7 @@ services :
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT}:9090"
     networks:
       - mgt-net
 
@@ -54,7 +54,7 @@ services :
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
       - grafana_data:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT}:3000"
     networks:
       - mgt-net
 
