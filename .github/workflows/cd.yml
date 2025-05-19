@@ -41,6 +41,8 @@ jobs:
           echo "PROMETHEUS_PORT=${{ vars.PROMETHEUS_PORT }}" >> .env
           echo "GRAFANA_PORT=${{ vars.GRAFANA_PORT }}" >> .env
           echo "LOKI_PORT=${{ vars.LOKI_PORT }}" >> .env
+          echo "FLUENTBIT_PORT=${{ vars.FLUENTBIT_PORT }}" >> .env
+          echo "FLUENTBIT_LOKI_PORT=${{ vars.FLUENTBIT_LOKI_PORT }}" >> .env
 
       - name: 생성한 .env 파일 EC2 서버로 복사
         run: |
