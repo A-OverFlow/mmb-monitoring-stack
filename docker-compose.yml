@@ -6,8 +6,7 @@ services :
     ports:
       - "${NODE_EXPORTER_PORT}:9100"
     networks:
-      - mgt-net
-      - be-net
+      - mumulbo-network
 
   mmb-process-exporter:
     image: ncabatoff/process-exporter:latest
@@ -23,8 +22,7 @@ services :
     ports:
       - "${PROCESS_EXPORTER_PORT}:9256"
     networks:
-      - mgt-net
-      - be-net
+      - mumulbo-network
 
   mmb-prometheus:
     image: prom/prometheus
@@ -39,7 +37,7 @@ services :
     ports:
       - "${PROMETHEUS_PORT}:9090"
     networks:
-      - mgt-net
+      - mumulbo-network
 
   mmb-grafana:
     image: grafana/grafana
@@ -56,7 +54,7 @@ services :
     ports:
       - "${GRAFANA_PORT}:3000"
     networks:
-      - mgt-net
+      - mumulbo-network
 
   mmb-loki:
     image: grafana/loki
@@ -70,18 +68,31 @@ services :
       - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml
     networks:
-      - mgt-net
+      - mumulbo-network
 
-  mmb-promtail:
-    image: grafana/promtail
-    container_name: mmb-promtail
-    restart: no
+#  mmb-promtail:
+#    image: grafana/promtail
+#    container_name: mmb-promtail
+#    restart: no
+#    volumes:
+#      - /var/log:/var/log:ro  # 호스트의 로그 읽기
+#      - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+#    command: -config.file=/etc/promtail/config.yaml
+#    networks:
+#      - mgt-net
+
+  mmb-fluentbit:
+    image: grafana/fluent-bit-plugin-loki
+    platform: linux/amd64
+    container_name: mmb-fluentbit
+    ports:
+      - "${FLUENTBIT_LOKI_PORT}:24224"  # Fluent Bit forward input 포트
+      - "${FLUENTBIT_PORT}:2020"  # Fluent Bit 상태 확인 포트
     volumes:
-      - /var/log:/var/log:ro  # 호스트의 로그 읽기
-      - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
-    command: -config.file=/etc/promtail/config.yaml
+      - ./fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./fluentbit/extract_tag.lua:/fluent-bit/scripts/extract_tag.lua:ro
     networks:
-      - mgt-net
+      - mumulbo-network 
 
 volumes:
   grafana_data:
@@ -90,7 +101,7 @@ volumes:
   loki_data:
 
 networks:
-  be-net:
+  mumulbo-network:
+    external: true
     driver: bridge
-  mgt-net:
-    driver: bridge
+    name: ${MMB_DOCKER_NETWORK}
